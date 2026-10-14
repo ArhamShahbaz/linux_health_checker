@@ -2,7 +2,7 @@
 # Server Health Check Script
 
 # ---------- SETTINGS (CHANGE these if you want) ----------
-LOG_DIR="/opt/healthcheck/healthcheck-logs"   # CHANGE: where reports are saved
+LOG_DIR="/var/log/healthcheck"   # CHANGE: where reports are saved
 SERVICES="ssh nginx"               # CHANGE: services to check
 DISK_LIMIT=80                      # CHANGE: warn if disk is above this %
 # ----------------------------------------------------------
