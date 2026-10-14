@@ -211,4 +211,4 @@ WARNING: Disk is 85% full!
 
 ## 📄 License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is open-source.
