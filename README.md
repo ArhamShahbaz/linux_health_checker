@@ -1,6 +1,6 @@
 # Linux Server Health Checker 🐧🔍
 
-A lightweight, automated Bash script designed to monitor Linux server vitals, track critical services, verify disk space thresholds, and log timestamped health reports.
+A lightweight, automated Bash script designed to monitor Linux server vitals, track critical services, verify disk space thresholds, and log timestamped health reports following standard Linux directory conventions.
 
 ---
 
@@ -8,9 +8,9 @@ A lightweight, automated Bash script designed to monitor Linux server vitals, tr
 
 - [Overview](#overview)
 - [Key Features](#key-features)
-- [Directory & Log Structure](#directory--log-structure)
+- [Directory & Architecture Structure](#directory--architecture-structure)
 - [System Requirements](#system-requirements)
-- [Installation & Quick Start](#installation--quick-start)
+- [Installation & Setup](#installation--setup)
 - [Configuration](#configuration)
 - [Automating with Cron](#automating-with-cron)
 - [Sample Health Report](#sample-health-report)
@@ -21,37 +21,45 @@ A lightweight, automated Bash script designed to monitor Linux server vitals, tr
 
 ## 📖 Overview
 
-[`healthcheck.sh`](file:///D:/Public%20Repos/linux_health_checker/healthcheck.sh) runs essential system diagnostics to give system administrators and DevOps engineers a quick snapshot of server performance. It gathers disk usage, memory utilization, top resource-consuming processes, and service states, writing all findings to organized daily log files in the `/opt` hierarchy.
+[`healthcheck.sh`](file:///D:/Public%20Repos/linux_health_checker/healthcheck.sh) provides a reliable snapshot of your Linux server's operational health. It monitors disk usage, memory utilization, top resource-consuming processes, and service states.
+
+To comply with the Linux Filesystem Hierarchy Standard (FHS), this setup separates executable code from log data:
+- **Scripts Directory**: `/opt/healthcheck/` — Houses the executable monitoring script.
+- **Reports Directory**: `/var/log/healthcheck/` — Dedicated directory for generated timestamped health logs.
 
 ---
 
 ## ✨ Key Features
 
-- **Disk Space Monitoring**: Displays file system disk usage (`df -h`) and checks the root (`/`) partition against a configurable percentage threshold (default: `80%`).
-- **Memory Consumption**: Reports available, used, and free RAM and swap memory (`free -h`).
+- **Standardized Separation**: Scripts live in `/opt/healthcheck/`, and reports are stored in `/var/log/healthcheck/`.
+- **Disk Space Monitoring**: Displays filesystem disk usage (`df -h`) and warns if the root partition (`/`) exceeds a configurable percentage limit (default: `80%`).
+- **Memory Consumption**: Monitors available, used, and free RAM and swap memory (`free -h`).
 - **Top Processes**: Identifies the top 5 memory-intensive processes (`ps aux --sort=-%mem`).
 - **Service Status Checks**: Verifies if designated system services (e.g., `ssh`, `nginx`) are active using `systemctl`.
-- **Automated Directory & Log Management**: Automatically creates the target directory tree under `/opt/healthcheck/healthcheck-logs/` if it does not already exist.
-- **Daily Log Archival**: Groups reports into daily logs named `health-YYYY-MM-DD.log` for easy auditing and history tracking.
+- **Automatic Log Directory Creation**: Automatically creates `/var/log/healthcheck/` if it does not already exist.
+- **Daily Report Archiving**: Saves reports into daily files (`health-YYYY-MM-DD.log`) for easy auditing and history tracking.
 
 ---
 
-## 📁 Directory & Log Structure
-
-When the script executes, it creates the required directory structure under `/opt` on the Linux host:
+## 📁 Directory & Architecture Structure
 
 ```text
 /opt/
 └── healthcheck/
-    └── healthcheck-logs/
-        ├── health-2026-10-14.log
-        ├── health-2026-10-15.log
-        └── ...
+    └── healthcheck.sh            # Production script location
+
+/var/log/
+└── healthcheck/                  # Automatically created log directory
+    ├── health-2026-10-14.log     # Daily health report
+    ├── health-2026-10-15.log
+    └── ...
 ```
 
-- **Parent Directory**: `/opt/healthcheck/`
-- **Log Subdirectory**: `/opt/healthcheck/healthcheck-logs/`
-- **Log Format**: `health-<YYYY-MM-DD>.log` (appends multiple runs on the same day).
+| Path | Purpose |
+| :--- | :--- |
+| `/opt/healthcheck/` | Main application folder where [`healthcheck.sh`](file:///D:/Public%20Repos/linux_health_checker/healthcheck.sh) is installed and executed. |
+| `/var/log/healthcheck/` | Target log folder where all daily reports are stored (`LOG_DIR`). |
+| `health-<YYYY-MM-DD>.log` | Daily log file. Appends multiple runs executed on the same day. |
 
 ---
 
@@ -61,106 +69,109 @@ When the script executes, it creates the required directory structure under `/op
 - **Shell**: Bash (`/bin/bash`)
 - **Core Utilities**: `df`, `free`, `ps`, `awk`, `date`, `mkdir`
 - **Init System**: `systemd` (for `systemctl` service checks)
-- **Privileges**: Root or `sudo` access (required for writing to `/opt` and checking restricted services).
+- **Privileges**: Root or `sudo` access (required for `/opt` and `/var/log` paths and system service queries).
 
 ---
 
-## 🚀 Installation & Quick Start
+## 🚀 Installation & Setup
 
-### 1. Clone the Repository
+### Step 1: Clone or Download the Repository
 
 ```bash
 git clone https://github.com/<your-username>/linux_health_checker.git
 cd linux_health_checker
 ```
 
-### 2. Make the Script Executable
+### Step 2: Install Script to `/opt/healthcheck/`
 
-Grant execute permissions to the script:
+Create the script directory under `/opt` and copy [`healthcheck.sh`](file:///D:/Public%20Repos/linux_health_checker/healthcheck.sh) into it:
 
 ```bash
-chmod +x healthcheck.sh
+sudo mkdir -p /opt/healthcheck
+sudo cp healthcheck.sh /opt/healthcheck/
+sudo chmod +x /opt/healthcheck/healthcheck.sh
 ```
 
-### 3. Run the Health Check
+### Step 3: Run the Health Check
 
-Execute the script with `sudo` permissions (to allow creation of directories in `/opt`):
+Execute the script from its installation directory:
 
 ```bash
-sudo ./healthcheck.sh
+sudo /opt/healthcheck/healthcheck.sh
 ```
 
-### 4. View the Generated Report
+> [!NOTE]
+> The script will automatically create `/var/log/healthcheck/` on its first run if the directory does not already exist.
 
-View the latest generated log entry:
+### Step 4: View the Generated Report
+
+Inspect the generated log in `/var/log/healthcheck/`:
 
 ```bash
-# View the full daily log
-cat /opt/healthcheck/healthcheck-logs/health-$(date +%Y-%m-%d).log
+# View the full daily report
+cat /var/log/healthcheck/health-$(date +%Y-%m-%d).log
 
-# Or view the end of the log
-tail -n 30 /opt/healthcheck/healthcheck-logs/health-$(date +%Y-%m-%d).log
+# Or view the latest 30 lines
+tail -n 30 /var/log/healthcheck/health-$(date +%Y-%m-%d).log
 ```
 
 ---
 
 ## 🔧 Configuration
 
-You can customize the script behavior by editing the settings section at the beginning of [`healthcheck.sh`](file:///D:/Public%20Repos/linux_health_checker/healthcheck.sh):
+You can customize the script behavior by editing the settings at the top of [`/opt/healthcheck/healthcheck.sh`](file:///D:/Public%20Repos/linux_health_checker/healthcheck.sh):
 
 ```bash
 # ---------- SETTINGS (CHANGE these if you want) ----------
-LOG_DIR="/opt/healthcheck/healthcheck-logs"   # Where reports are saved
-SERVICES="ssh nginx"                         # Space-separated services to check
-DISK_LIMIT=80                                # Warn if root disk usage is above this %
+LOG_DIR="/var/log/healthcheck"       # Directory where reports are saved
+SERVICES="ssh nginx"                 # Space-separated services to check
+DISK_LIMIT=80                        # Warn if root disk is above this %
 # ----------------------------------------------------------
 ```
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
-| `LOG_DIR` | `/opt/healthcheck/healthcheck-logs` | Target folder for health report logs. Created automatically if missing. |
+| `LOG_DIR` | `/var/log/healthcheck` | Directory where daily health logs are written. Created automatically. |
 | `SERVICES` | `"ssh nginx"` | Space-delimited list of system services to monitor (e.g. `"sshd nginx docker mysql"`). |
 | `DISK_LIMIT` | `80` | Integer percentage threshold for root (`/`) partition disk warning. |
 
 > [!TIP]
-> On Red Hat / CentOS / Fedora distributions, SSH is usually named `sshd` rather than `ssh`. Update `SERVICES="sshd nginx"` accordingly.
+> On RHEL / CentOS / Fedora distributions, SSH is named `sshd` rather than `ssh`. Update `SERVICES="sshd nginx"` as needed.
 
 ---
 
 ## ⏰ Automating with Cron
 
-To perform periodic health checks (e.g., hourly or daily), schedule a cron job with `crontab`:
+To run periodic checks automatically, schedule a cron job for the root user:
 
-1. Open the root user crontab editor:
+1. Open root crontab:
 
    ```bash
    sudo crontab -e
    ```
 
-2. Add your desired schedule:
+2. Add your desired schedule pointing to `/opt/healthcheck/healthcheck.sh`:
 
    **Run every hour:**
    ```cron
-   0 * * * * /path/to/linux_health_checker/healthcheck.sh >/dev/null 2>&1
+   0 * * * * /opt/healthcheck/healthcheck.sh >/dev/null 2>&1
    ```
 
-   **Run every day at 00:00 (Midnight):**
+   **Run daily at midnight (00:00):**
    ```cron
-   0 0 * * * /path/to/linux_health_checker/healthcheck.sh >/dev/null 2>&1
+   0 0 * * * /opt/healthcheck/healthcheck.sh >/dev/null 2>&1
    ```
 
    **Run every 6 hours:**
    ```cron
-   0 */6 * * * /path/to/linux_health_checker/healthcheck.sh >/dev/null 2>&1
+   0 */6 * * * /opt/healthcheck/healthcheck.sh >/dev/null 2>&1
    ```
-
-*(Replace `/path/to/linux_health_checker/` with the absolute path to your cloned repository)*.
 
 ---
 
 ## 📄 Sample Health Report
 
-Below is an example of the output appended to `/opt/healthcheck/healthcheck-logs/health-YYYY-MM-DD.log`:
+Below is an example of an entry appended to `/var/log/healthcheck/health-YYYY-MM-DD.log`:
 
 ```text
 ===== Health Report: Wed Oct 14 10:30:00 UTC 2026 =====
@@ -189,7 +200,7 @@ nginx: RUNNING
 Disk OK (38% used)
 ```
 
-If the root partition exceeds the configured `DISK_LIMIT`, the report will output:
+If the root partition exceeds `DISK_LIMIT`, the report alerts you:
 
 ```text
 WARNING: Disk is 85% full!
@@ -199,13 +210,12 @@ WARNING: Disk is 85% full!
 
 ## 🛠️ Troubleshooting
 
-- **`Permission denied` when running the script:**
-  - Make sure you granted execution permission with `chmod +x healthcheck.sh`.
-  - Creating directories under `/opt` requires elevated permissions. Always run with `sudo ./healthcheck.sh`.
+- **`Permission denied` when creating directories or running script:**
+  - Writing to `/opt/healthcheck/` and `/var/log/healthcheck/` requires administrative privileges. Always run installation commands and execution with `sudo`.
 - **`systemctl: command not found`:**
-  - The host system may be using an alternate init system (e.g. SysVinit, OpenRC, or running inside a lightweight Docker container without systemd).
+  - Occurs if running in a minimal container environment or on a distribution that does not use systemd.
 - **Service shows `NOT RUNNING` unexpectedly:**
-  - Confirm the exact service name using `systemctl status <service_name>`. Service names may differ across Linux distributions (e.g., `apache2` on Debian/Ubuntu vs `httpd` on CentOS/RHEL).
+  - Verify the exact service unit name with `systemctl list-units --type=service`.
 
 ---
 
